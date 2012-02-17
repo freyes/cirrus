@@ -1,0 +1,12 @@
+#!/bin/bash
+
+cd $HOME/virtualenv
+
+rm -rf cirrus
+virtualenv cirrus --system-site-packages
+
+source cirrus/bin/activate
+
+cd -
+
+python setup.py develop
