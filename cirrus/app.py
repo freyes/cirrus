@@ -42,6 +42,19 @@ def instance_age(instance):
                                              "%H:%M %m/%d/%Y"))
 
 
+class ConsoleOutputWindow(object):
+    def __init__(self, instance, builder):
+        self.builder = builder
+        self.instance = instance
+
+        console = instance.get_console_output()
+        lbl = self.builder.get_object("lbl_console_output")
+        lbl.set_text(console.output)
+
+        wnd = self.builder.get_object("wnd_console_output")
+        wnd.show_all()
+
+
 class AppWindowHandlers(object):
     def __init__(self, view):
         self.view = view
@@ -55,6 +68,17 @@ class AppWindowHandlers(object):
 
         self.view.selected_account = Account(model[iter_][0])
         self.view.populate_instances()
+
+    def on_toolbtn_view_console_clicked(self, widget):
+        tree = self.view.builder.get_object("tree_instances")
+        selection = tree.get_selection()
+        (model, treeiter) = selection.get_selected()
+        if treeiter == None:
+            print "no row selected"
+            return True
+        item = model[treeiter]
+
+        ConsoleOutputWindow(item[-1], self.view.builder)
 
 
 class AppWindow(object):
@@ -139,8 +163,8 @@ class AppWindow(object):
         t.start()
 
     def process_instances(self, gobj, instances):
-        model = Gtk.ListStore(*[i.get("type", str) \
-                                for i in self.INSTANCES_COLS])
+        model = Gtk.ListStore(*([i.get("type", str) \
+                                for i in self.INSTANCES_COLS] + [object]))
 
         for instance in instances:
             row = []
@@ -151,6 +175,7 @@ class AppWindow(object):
                     value = getattr(instance, item["field"], "-")
 
                 row.append(value)
+            row.append(instance)
             model.append(row)
 
         tree = self.builder.get_object("tree_instances")
