@@ -18,6 +18,7 @@ setup(
     license="GPLv3",
     keywords="ec2 cloud aws openstack",
     packages=find_packages(),
+    include_package_data=True,
     long_description=read('README'),
     install_requires=dependencies,
     classifiers=[

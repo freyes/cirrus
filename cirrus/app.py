@@ -2,16 +2,34 @@ import sys
 import gi
 import os.path
 from cirrus.config import settings
-from cirrus.conn import Account, EC2Connection
+from cirrus.conn import Account
 from cirrus.ec2 import ListInstancesThread
 
 gi.require_version("Gtk", "3.0")
 
 from gi.repository import Gtk
 from gi.repository import Gdk
+from gi.repository import GdkPixbuf
 from gi.repository import GLib
 
 APPNAME_SHORT = "cirrus"
+
+state_images = {"running": "state-green.png",
+                "stopped": "state-red.png",
+                "stopping": "state-red.png",
+                "terminated": "state-red.png",
+                "pending": "state-yellow.png",
+                "shutting-down": "state-yellow.png",
+                }
+
+
+def instance_state_to_pixbuf(instance):
+    image_name = state_images.get(instance.state, "state-yellow.png")
+    _here = os.path.dirname(os.path.abspath(__file__))
+    fpath = os.path.join(_here, "ui", "pixmaps", image_name)
+    pixbuf = GdkPixbuf.Pixbuf.new_from_file(fpath)
+
+    return pixbuf
 
 
 class AppWindowHandlers(object):
@@ -31,10 +49,16 @@ class AppWindowHandlers(object):
 
 class AppWindow(object):
     INSTANCES_COLS = [{"display_name": "ID", "field": "id"},
-                      {"display_name": "Name", "transform": lambda x: x.tags.get("Name", "")},
+                      {"display_name": "Name",
+                       "transform": lambda x: x.tags.get("Name", "")},
                       {"display_name": "AMI", "field": "ami_id"},
                       {"display_name": "Type", "field": "instance_type"},
-                      {"display_name": "State", "field": "state"},
+                      {"display_name": "State", "field": "state",
+                       "type": GdkPixbuf.Pixbuf,
+                       "renderer": Gtk.CellRendererPixbuf(),
+                       "transform": instance_state_to_pixbuf,
+                       "sort_col": 5},
+                      {"field": "state", "visible": False},
                       {"display_name": "Security Groups", "field": "id"},
                       {"display_name": "Key Pair Name", "field": "key_name"},
                       ]
@@ -60,9 +84,22 @@ class AppWindow(object):
         tree = self.builder.get_object("tree_instances")
 
         for i, col in enumerate(self.INSTANCES_COLS):
-            renderer = Gtk.CellRendererText()
-            column = Gtk.TreeViewColumn(col["display_name"], renderer, text=i)
-            column.set_sort_column_id(i)
+            if not col.get("visible", True):
+                continue
+
+            renderer = col.get("renderer", Gtk.CellRendererText())
+
+            if isinstance(renderer, Gtk.CellRendererPixbuf):
+                column = Gtk.TreeViewColumn()
+                column.set_title(col["display_name"])
+                column.pack_start(renderer, expand=False)
+                column.add_attribute(renderer, "pixbuf", i)
+            else:
+                column = Gtk.TreeViewColumn(col["display_name"],
+                                            renderer, text=i)
+
+            col_number = col.get("sort_col", i)
+            column.set_sort_column_id(col_number)
             tree.append_column(column)
 
     def populate_accounts(self):
@@ -81,15 +118,24 @@ class AppWindow(object):
             print "no selected account"
             return
 
-        t = ListInstancesThread(self.selected_account, self.INSTANCES_COLS)
-        t.connect("data-arrived", self.asdf)
+        t = ListInstancesThread(self.selected_account)
+        t.connect("data-arrived", self.process_instances)
         t.start()
 
-    def asdf(self, gobj, instances):
-        model = Gtk.ListStore(*[i.get("type", str) for i in self.INSTANCES_COLS])
+    def process_instances(self, gobj, instances):
+        model = Gtk.ListStore(*[i.get("type", str) \
+                                for i in self.INSTANCES_COLS])
 
         for instance in instances:
-            model.append(instance)
+            row = []
+            for item in self.INSTANCES_COLS:
+                if "transform" in item:
+                    value = item["transform"](instance)
+                else:
+                    value = getattr(instance, item["field"], "-")
+
+                row.append(value)
+            model.append(row)
 
         tree = self.builder.get_object("tree_instances")
         tree.set_model(model)
