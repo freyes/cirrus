@@ -1,6 +1,7 @@
 import sys
 import gi
 import os.path
+from datetime import datetime
 from cirrus.config import settings
 from cirrus.conn import Account
 from cirrus.ec2 import ListInstancesThread
@@ -32,6 +33,15 @@ def instance_state_to_pixbuf(instance):
     return pixbuf
 
 
+def instance_age(instance):
+
+    # 2011-04-26T22:36:27.000Z
+    launch_time = datetime.strptime(instance.launch_time,
+                                    "%Y-%m-%dT%H:%M:%S.000Z")
+    return launch_time.strftime(settings.get("datetime_format",
+                                             "%H:%M %m/%d/%Y"))
+
+
 class AppWindowHandlers(object):
     def __init__(self, view):
         self.view = view
@@ -51,7 +61,7 @@ class AppWindow(object):
     INSTANCES_COLS = [{"display_name": "ID", "field": "id"},
                       {"display_name": "Name",
                        "transform": lambda x: x.tags.get("Name", "")},
-                      {"display_name": "AMI", "field": "ami_id"},
+                      {"display_name": "AMI", "field": "image_id"},
                       {"display_name": "Type", "field": "instance_type"},
                       {"display_name": "State", "field": "state",
                        "type": GdkPixbuf.Pixbuf,
@@ -61,6 +71,12 @@ class AppWindow(object):
                       {"field": "state", "visible": False},
                       {"display_name": "Security Groups", "field": "id"},
                       {"display_name": "Key Pair Name", "field": "key_name"},
+                      {"display_name": "Public IP", "field": "ip_address"},
+                      {"display_name": "Private IP",
+                       "field": "private_ip_address"},
+                      {"display_name": "Age", "transform": instance_age,
+                       "sort_col": 11},
+                      {"field": "launch_time", "visible": False},
                       ]
 
     def __init__(self):
