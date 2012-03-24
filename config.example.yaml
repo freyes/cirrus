@@ -1,0 +1,10 @@
+accounts:
+  aws:
+    access_key: "ACCESS_KEY"
+    secret_key: "SECRET_KEY"
+    account_id: "ACCOUNT_ID"
+  trystack:
+    access_key: ACCESS_KEY
+    secret_key: SECRET_KEY
+    endpoint: https://nova-api.trystack.org:5443/v2.0
+    type: openstack
