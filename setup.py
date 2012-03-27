@@ -2,7 +2,7 @@ import os
 from setuptools import setup, find_packages
 from cirrus import __version__
 
-dependencies = ["boto", "PyYAML"]
+dependencies = ["apache-libcloud", "PyYAML"]
 
 
 def read(fname):

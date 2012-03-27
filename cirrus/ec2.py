@@ -1,5 +1,5 @@
 import threading
-from cirrus.conn import EC2Connection
+from cirrus.conn import Adapter
 from gi.repository import GObject
 
 
@@ -20,9 +20,8 @@ class ListInstancesThread(threading.Thread, GObject.GObject):
         self.instance_ids = None
 
     def run(self):
-        conn = EC2Connection(self.account, self.region)
-        reservations = conn.get_all_instances(instance_ids=self.instance_ids,
-                                              filters=self.filters)
+        adapter = Adapter(self.account)
+        reservations = adapter.conn.list_nodes()
 
         instances = []
         for r in reservations:
