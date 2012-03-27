@@ -25,7 +25,8 @@ state_images = {"running": "state-green.png",
 
 
 def instance_state_to_pixbuf(instance):
-    image_name = state_images.get(instance.state, "state-yellow.png")
+    image_name = state_images.get(instance.extra.get("status"),
+                                  "state-yellow.png")
     _here = os.path.dirname(os.path.abspath(__file__))
     fpath = os.path.join(_here, "ui", "pixmaps", image_name)
     pixbuf = GdkPixbuf.Pixbuf.new_from_file(fpath)
@@ -36,7 +37,7 @@ def instance_state_to_pixbuf(instance):
 def instance_age(instance):
 
     # 2011-04-26T22:36:27.000Z
-    launch_time = datetime.strptime(instance.launch_time,
+    launch_time = datetime.strptime(instance.extra.get("launchdatetime"),
                                     "%Y-%m-%dT%H:%M:%S.000Z")
     return launch_time.strftime(settings.get("datetime_format",
                                              "%H:%M %m/%d/%Y"))
@@ -83,8 +84,7 @@ class AppWindowHandlers(object):
 
 class AppWindow(object):
     INSTANCES_COLS = [{"display_name": "ID", "field": "id"},
-                      {"display_name": "Name",
-                       "transform": lambda x: x.tags.get("Name", "")},
+                      {"display_name": "Name", "field": "name"},
                       {"display_name": "AMI", "field": "image_id"},
                       {"display_name": "Type", "field": "instance_type"},
                       {"display_name": "State", "field": "state",
@@ -92,7 +92,8 @@ class AppWindow(object):
                        "renderer": Gtk.CellRendererPixbuf(),
                        "transform": instance_state_to_pixbuf,
                        "sort_col": 5},
-                      {"field": "state", "visible": False},
+                      {"field": "status", "visible": False,
+                       "transform": lambda x: x.extra.get("status")},
                       {"display_name": "Security Groups", "field": "id"},
                       {"display_name": "Key Pair Name", "field": "key_name"},
                       {"display_name": "Public IP", "field": "ip_address"},
@@ -100,7 +101,8 @@ class AppWindow(object):
                        "field": "private_ip_address"},
                       {"display_name": "Age", "transform": instance_age,
                        "sort_col": 11},
-                      {"field": "launch_time", "visible": False},
+                      {"field": "launch_time", "visible": False,
+                       "transform": lambda x: x.extra["launchdatetime"]},
                       ]
 
     def __init__(self):

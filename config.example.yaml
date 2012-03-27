@@ -2,7 +2,7 @@ accounts:
   aws:
     access_key: "ACCESS_KEY"
     secret_key: "SECRET_KEY"
-    account_id: "ACCOUNT_ID"
+    type: ec2
   trystack:
     access_key: ACCESS_KEY
     secret_key: SECRET_KEY

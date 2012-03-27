@@ -21,13 +21,10 @@ class ListInstancesThread(threading.Thread, GObject.GObject):
 
     def run(self):
         adapter = Adapter(self.account)
-        reservations = adapter.conn.list_nodes()
 
         instances = []
-        for r in reservations:
-            for instance in r.instances:
-                instances.append(instance)
-
+        for instance in adapter.conn.list_nodes():
+            instances.append(instance)
         self.emit('data-arrived', instances)
 
 GObject.type_register(ListInstancesThread)
