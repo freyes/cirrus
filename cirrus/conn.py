@@ -1,4 +1,5 @@
 import urlparse
+import libcloud.security
 from cirrus.config import settings
 from cirrus.exception import AccountError
 from libcloud.compute.types import Provider
@@ -8,11 +9,13 @@ from libcloud.compute.providers import get_driver
 class Account(object):
     def __init__(self, name):
         self.name = name
+        acct = settings["accounts"][name]
         try:
-            self.access_key = settings["accounts"][name]["access_key"]
-            self.secret_key = settings["accounts"][name]["secret_key"]
-            self.type = settings["accounts"][name].get("type", "").upper()
-            self.endpoint = settings["accounts"][name].get("endpoint")
+            self.access_key = acct["access_key"]
+            self.secret_key = acct["secret_key"]
+            self.type = acct.get("type", "").upper()
+            self.endpoint = acct.get("endpoint")
+            self.verify_ssl = acct.get("verify_ssl", True)
 
             if self.endpoint:
                 parsed = urlparse.urlparse(self.endpoint)
@@ -35,12 +38,9 @@ class Adapter(object):
         self.driver_klass = get_driver(getattr(Provider, self.account.type))
         kwargs = {}
         if self.account.type == "OPENSTACK":
-            kwargs["secure"] = self.account.secure
-            kwargs["host"] = self.account.host
-            kwargs["ex_force_auth_url"] = self.account.endpoint + "/tokens"
-            kwargs["port"] = self.account.port
-
-        print kwargs
+            kwargs["ex_force_auth_url"] = self.account.endpoint
+            kwargs["ex_force_auth_version"] = '2.0_password'
+            libcloud.security.VERIFY_SSL_CERT = self.account.verify_ssl
 
         self.conn = self.driver_klass(self.account.access_key,
                                       self.account.secret_key,

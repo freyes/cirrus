@@ -37,7 +37,11 @@ def instance_state_to_pixbuf(instance):
 def instance_age(instance):
 
     # 2011-04-26T22:36:27.000Z
-    launch_time = datetime.strptime(instance.extra.get("launchdatetime"),
+    launchdatetime = instance.extra.get("launchdatetime")
+    if not launchdatetime:
+        return ""
+
+    launch_time = datetime.strptime(launchdatetime,
                                     "%Y-%m-%dT%H:%M:%S.000Z")
     return launch_time.strftime(settings.get("datetime_format",
                                              "%H:%M %m/%d/%Y"))
@@ -102,7 +106,8 @@ class AppWindow(object):
                       {"display_name": "Age", "transform": instance_age,
                        "sort_col": 11},
                       {"field": "launch_time", "visible": False,
-                       "transform": lambda x: x.extra["launchdatetime"]},
+                       "transform": lambda x: x.extra.get("launchdatetime",
+                                                          "")},
                       ]
 
     def __init__(self):
