@@ -16,6 +16,7 @@ class Account(object):
             self.type = acct.get("type", "").upper()
             self.endpoint = acct.get("endpoint")
             self.verify_ssl = acct.get("verify_ssl", True)
+            self.api_key = acct.get("api_key")
 
             if self.endpoint:
                 parsed = urlparse.urlparse(self.endpoint)
@@ -36,12 +37,18 @@ class Adapter(object):
             self.account = account
 
         self.driver_klass = get_driver(getattr(Provider, self.account.type))
+        args = []
         kwargs = {}
         if self.account.type == "OPENSTACK":
+            args.append(self.account.access_key)
+            args.append(self.account.secret_key)
             kwargs["ex_force_auth_url"] = self.account.endpoint
             kwargs["ex_force_auth_version"] = '2.0_password'
             libcloud.security.VERIFY_SSL_CERT = self.account.verify_ssl
+        elif self.account_type == "LINODE":
+            args.append(self.account.api_key)
+        else:
+            args.append(self.account.access_key)
+            args.append(self.account.secret_key)
 
-        self.conn = self.driver_klass(self.account.access_key,
-                                      self.account.secret_key,
-                                      **kwargs)
+        self.conn = self.driver_klass(*args, **kwargs)
