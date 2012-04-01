@@ -11,8 +11,8 @@ class Account(object):
         self.name = name
         acct = settings["accounts"][name]
         try:
-            self.access_key = acct["access_key"]
-            self.secret_key = acct["secret_key"]
+            self.access_key = acct.get("access_key")
+            self.secret_key = acct.get("secret_key")
             self.type = acct.get("type", "").upper()
             self.endpoint = acct.get("endpoint")
             self.verify_ssl = acct.get("verify_ssl", True)
@@ -45,7 +45,7 @@ class Adapter(object):
             kwargs["ex_force_auth_url"] = self.account.endpoint
             kwargs["ex_force_auth_version"] = '2.0_password'
             libcloud.security.VERIFY_SSL_CERT = self.account.verify_ssl
-        elif self.account_type == "LINODE":
+        elif self.account.type == "LINODE":
             args.append(self.account.api_key)
         else:
             args.append(self.account.access_key)
