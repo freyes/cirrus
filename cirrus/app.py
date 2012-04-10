@@ -1,6 +1,7 @@
 import sys
 import gi
 import os.path
+import logging
 from datetime import datetime
 from cirrus.config import settings
 from cirrus.conn import Account
@@ -13,6 +14,7 @@ from gi.repository import Gdk
 from gi.repository import GdkPixbuf
 from gi.repository import GLib
 
+log = logging.getLogger("app")
 APPNAME_SHORT = "cirrus"
 
 state_images = {"running": "state-green.png",
@@ -85,6 +87,9 @@ class AppWindowHandlers(object):
 
         ConsoleOutputWindow(item[-1], self.view.builder)
 
+    def on_toolbtn_refresh_clicked(self, widget):
+        self.view.populate_instances()
+
 
 class AppWindow(object):
     INSTANCES_COLS = [{"display_name": "ID", "field": "id"},
@@ -111,6 +116,7 @@ class AppWindow(object):
                       ]
 
     def __init__(self):
+        self.log = logging.getLogger(self.__class__.__name__)
         self.selected_account = None
         _here = os.path.dirname(os.path.abspath(__file__))
         self.builder_file = os.path.join(_here, "ui", "ui.glade")
@@ -150,9 +156,11 @@ class AppWindow(object):
             tree.append_column(column)
 
     def populate_accounts(self):
+        self.log.debug("populating accounts")
         name_store = Gtk.ListStore(str, str)
 
         for account_name in settings["accounts"]:
+            self.log.debug("account found: %s" % account_name)
             name_store.append([account_name, account_name])
 
         account_combo = self.builder.get_object("cmb_accounts")
@@ -161,15 +169,18 @@ class AppWindow(object):
         account_combo.set_model(name_store)
 
     def populate_instances(self):
+        self.log.debug("populating instances")
         if not self.selected_account:
-            print "no selected account"
+            self.log.info("no selected account")
             return
 
         t = ListInstancesThread(self.selected_account)
         t.connect("data-arrived", self.process_instances)
+        self.log.debug("launched thread to get the instances")
         t.start()
 
     def process_instances(self, gobj, instances):
+        self.log.debug("the instances arrived, processing them...")
         model = Gtk.ListStore(*([i.get("type", str) \
                                 for i in self.INSTANCES_COLS] + [object]))
 
@@ -187,6 +198,7 @@ class AppWindow(object):
 
         tree = self.builder.get_object("tree_instances")
         tree.set_model(model)
+        self.log.debug("instance loaded: %d" % len(instances))
 
 
 class Application(object):
@@ -205,6 +217,8 @@ def main(argv=None):
     if argv == None:
         argv = sys.argv
 
+    logging.basicConfig(level=logging.DEBUG)
+    log.info("Starting application")
     application = Application()
     application.start()
 
