@@ -1,5 +1,6 @@
 import threading
 from cirrus.conn import Adapter
+from cirrus.instance import Instance
 from gi.repository import GObject
 from gi.repository import Gdk
 
@@ -25,7 +26,7 @@ class ListInstancesThread(threading.Thread, GObject.GObject):
 
         instances = []
         for instance in adapter.conn.list_nodes():
-            instances.append(instance)
+            instances.append(Instance(self.account.type, instance))
         Gdk.threads_enter()
         self.emit('data-arrived', instances)
         Gdk.threads_leave()
