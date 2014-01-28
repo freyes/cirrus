@@ -2,4 +2,5 @@
 *.pyo
 *~
 \#*
-cirrus.egg-info/
+*.egg-info/
+env/
