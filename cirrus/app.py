@@ -2,6 +2,7 @@ import sys
 import gi
 import os.path
 import logging
+import signal
 from datetime import datetime
 from cirrus.config import settings
 from cirrus.conn import Account
@@ -66,7 +67,7 @@ class AppWindowHandlers(object):
     def __init__(self, view):
         self.view = view
 
-    def on_destroy(self, *args, **kwargs):
+    def on_delete(self, *args, **kwargs):
         Gtk.main_quit()
 
     def on_account_changed(self, widget):
@@ -132,6 +133,10 @@ class AppWindow(object):
     def window(self):
         return self.builder.get_object("window1")
 
+    @property
+    def statusbar(self):
+        return self.builder.get_object("main_statusbar")
+
     def setup_instances_treeview(self):
         tree = self.builder.get_object("tree_instances")
 
@@ -175,6 +180,7 @@ class AppWindow(object):
 
         t = ListInstancesThread(self.selected_account)
         t.connect("data-arrived", self.process_instances)
+        t.connect('list-nodes-error', self.manage_error)
         self.log.debug("launched thread to get the instances")
         t.start()
 
@@ -199,6 +205,12 @@ class AppWindow(object):
         tree.set_model(model)
         self.log.debug("instance loaded: %d" % len(instances))
 
+    def manage_error(self, gobj, ex):
+        self.log.debug("Error: %s" % ex)
+        ctx_id = self.statusbar.get_context_id("MAIN")
+        msg_id = self.statusbar.push(ctx_id, str(ex))
+        GLib.timeout_add_seconds(10, lambda: self.statusbar.remove(ctx_id, msg_id))
+
 
 class Application(object):
     def __init__(self):
@@ -211,14 +223,18 @@ class Application(object):
         Gtk.main()
         Gdk.threads_leave()
 
+    def quit_now(self, signum, frame):
+        Gtk.main_quit()
+
 
 def main(argv=None):
-    if argv == None:
+    if argv is None:
         argv = sys.argv
 
     logging.basicConfig(level=logging.DEBUG)
     log.info("Starting application")
     application = Application()
+    signal.signal(signal.SIGINT, application.quit_now)
     application.start()
 
 
