@@ -123,7 +123,6 @@ class AppWindow(object):
         self.builder = Gtk.Builder()
         self.builder.add_from_file(self.builder_file)
         self.builder.connect_signals(AppWindowHandlers(self))
-
         self.setup_instances_treeview()
         self.populate_accounts()
         self.populate_instances()
@@ -203,13 +202,23 @@ class AppWindow(object):
 
         tree = self.builder.get_object("tree_instances")
         tree.set_model(model)
-        self.log.debug("instance loaded: %d" % len(instances))
+        self.log.debug("instances loaded: %d" % len(instances))
+
+    def raise_error_dialog(self, message):
+        dialog = Gtk.MessageDialog(self.window, 0, Gtk.MessageType.ERROR,
+                                   Gtk.ButtonsType.OK,
+                                   "Error performing operation")
+        dialog.format_secondary_text(str(message))
+        dialog.run()
+        dialog.destroy()
 
     def manage_error(self, gobj, ex):
         self.log.debug("Error: %s" % ex)
         ctx_id = self.statusbar.get_context_id("MAIN")
         msg_id = self.statusbar.push(ctx_id, str(ex))
-        GLib.timeout_add_seconds(10, lambda: self.statusbar.remove(ctx_id, msg_id))
+        self.raise_error_dialog(ex)
+        GLib.timeout_add_seconds(10,
+                                 lambda: self.statusbar.remove(ctx_id, msg_id))
 
 
 class Application(object):
@@ -234,7 +243,8 @@ def main(argv=None):
     logging.basicConfig(level=logging.DEBUG)
     log.info("Starting application")
     application = Application()
-    signal.signal(signal.SIGINT, application.quit_now)
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+
     application.start()
 
 
