@@ -3,7 +3,6 @@ from cirrus.conn import Adapter
 from cirrus.instance import Instance
 from gi.repository import GObject
 from gi.repository import Gdk
-from libcloud.common.types import InvalidCredsError
 
 
 class ListInstancesThread(threading.Thread, GObject.GObject):
@@ -29,16 +28,13 @@ class ListInstancesThread(threading.Thread, GObject.GObject):
 
         instances = []
         try:
+            Gdk.threads_enter()
             for instance in adapter.conn.list_nodes():
                 instances.append(Instance(self.account.type, instance))
-        except InvalidCredsError as ex:
-            Gdk.threads_enter()
+        except Exception as ex:
             self.emit('list-nodes-error', ex)
-            Gdk.threads_leave()
-            return None
-
-        Gdk.threads_enter()
-        self.emit('data-arrived', instances)
+        else:
+            self.emit('data-arrived', instances)
         Gdk.threads_leave()
 
 GObject.type_register(ListInstancesThread)
