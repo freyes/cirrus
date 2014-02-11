@@ -74,15 +74,16 @@ class AppWindowHandlers(object):
         model = widget.get_model()
         iter_ = widget.get_active_iter()
 
-        self.view.selected_account = Account(model[iter_][0])
-        self.view.populate_instances()
+        if iter_ is not None:
+            self.view.selected_account = Account(model[iter_][0])
+            self.view.populate_instances(account_widget=widget)
 
     def on_toolbtn_view_console_clicked(self, widget):
         tree = self.view.builder.get_object("tree_instances")
         selection = tree.get_selection()
         (model, treeiter) = selection.get_selected()
-        if treeiter == None:
-            print "no row selected"
+        if treeiter is None:
+            log.debug("No row selected")
             return True
         item = model[treeiter]
 
@@ -118,6 +119,7 @@ class AppWindow(object):
     def __init__(self):
         self.log = logging.getLogger(self.__class__.__name__)
         self.selected_account = None
+        self.account_widget = None
         _here = os.path.dirname(os.path.abspath(__file__))
         self.builder_file = os.path.join(_here, "ui", "ui.glade")
         self.builder = Gtk.Builder()
@@ -167,15 +169,17 @@ class AppWindow(object):
             name_store.append([account_name, account_name])
 
         account_combo = self.builder.get_object("cmb_accounts")
-        assert account_combo != None
-
+        assert account_combo is not None
         account_combo.set_model(name_store)
 
-    def populate_instances(self):
+    def populate_instances(self, account_widget=None):
         self.log.debug("populating instances")
         if not self.selected_account:
             self.log.info("no selected account")
             return
+
+        if account_widget is not None:
+            self.account_widget = account_widget
 
         t = ListInstancesThread(self.selected_account)
         t.connect("data-arrived", self.process_instances)
@@ -185,7 +189,7 @@ class AppWindow(object):
 
     def process_instances(self, gobj, instances):
         self.log.debug("the instances arrived, processing them...")
-        model = Gtk.ListStore(*([i.get("type", str) \
+        model = Gtk.ListStore(*([i.get("type", str)
                                 for i in self.INSTANCES_COLS] + [object]))
 
         for instance in instances:
@@ -214,9 +218,17 @@ class AppWindow(object):
 
     def manage_error(self, gobj, ex):
         self.log.debug("Error: %s" % ex)
+
         ctx_id = self.statusbar.get_context_id("MAIN")
         msg_id = self.statusbar.push(ctx_id, str(ex))
+
         self.raise_error_dialog(ex)
+
+        if self.account_widget is not None:
+            #This is a hack to re-enable the same last active item
+            #to be re-enabled and clickable.
+            self.account_widget.set_active(-1)
+
         GLib.timeout_add_seconds(10,
                                  lambda: self.statusbar.remove(ctx_id, msg_id))
 
