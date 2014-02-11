@@ -64,16 +64,21 @@ class InstanceContextMenu(Gtk.Menu):
         Gtk.Menu.__init__(self)
         self.builder = builder
         self.instance = instance
-
         self.display_menu()
 
     def display_menu(self):
+        state = self.instance.extra.get("status")
+
         terminal = Gtk.Image()
         terminal.set_from_file(_get_image_path('terminal-32x32.png'))
 
-        ssh_connect = Gtk.ImageMenuItem("Connect via SSH")
+        ssh_connect = Gtk.ImageMenuItem("Connect via SSH (%s)" % state)
         ssh_connect.set_image(terminal)
         ssh_connect.set_always_show_image(True)
+
+        if state not in ('running', ):
+            ssh_connect.set_sensitive(False)
+
         ssh_connect.connect("activate", self.on_connect_clicked)
 
         self.append(ssh_connect)
@@ -142,7 +147,6 @@ class InstanceContextMenu(Gtk.Menu):
 
         iter_ = ip_addr.get_active_iter()
         model = ip_addr.get_model()
-
         ip_addr = model[iter_][0]
 
         command.append(ip_addr)
