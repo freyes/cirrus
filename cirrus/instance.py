@@ -35,6 +35,27 @@ class Instance(object):
         return ", ".join(self.private_ips)
 
     @property
+    def ip_addresses(self):
+        """
+        Returns a list of all the available ip address ( public, private )
+        """
+        ip_addrs = []
+        for attr in ('ip_address', 'private_ips', 'public_ips', ):
+            try:
+                ips = getattr(self, attr)
+            except AttributeError:
+                pass
+            else:
+                if not isinstance(ips, list):
+                    if ips not in (None, ""):
+                        ips = ips.split(",")
+            for ip in ips:
+                ip = ip.strip(" ")
+                if ip not in ip_addrs:
+                    ip_addrs.append(ip)
+        return ip_addrs
+
+    @property
     def key_name(self):
         return self.extra.get("keyname", None)
 
