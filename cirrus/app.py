@@ -11,11 +11,16 @@ from cirrus.ec2 import ListInstancesThread
 gi.require_version("Gtk", "3.0")
 
 from gi.repository import Gtk
+from gi.repository import Vte
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
 from gi.repository import GLib
 
 log = logging.getLogger("app")
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+
+PIXMAP_PATH = os.path.join(_HERE, "ui", "pixmaps")
 APPNAME_SHORT = "cirrus"
 
 state_images = {"running": "state-green.png",
@@ -27,13 +32,14 @@ state_images = {"running": "state-green.png",
                 }
 
 
+def _get_image_path(name):
+    return os.path.join(PIXMAP_PATH, name)
+
+
 def instance_state_to_pixbuf(instance):
     image_name = state_images.get(instance.extra.get("status"),
                                   "state-yellow.png")
-    _here = os.path.dirname(os.path.abspath(__file__))
-    fpath = os.path.join(_here, "ui", "pixmaps", image_name)
-    pixbuf = GdkPixbuf.Pixbuf.new_from_file(fpath)
-
+    pixbuf = GdkPixbuf.Pixbuf.new_from_file(_get_image_path(image_name))
     return pixbuf
 
 
@@ -48,6 +54,116 @@ def instance_age(instance):
                                     "%Y-%m-%dT%H:%M:%S.000Z")
     return launch_time.strftime(settings.get("datetime_format",
                                              "%H:%M %m/%d/%Y"))
+
+
+class InstanceContextMenu(Gtk.Menu):
+    """
+    Class for manage the right-click context menu item
+    """
+    def __init__(self, builder, instance):
+        Gtk.Menu.__init__(self)
+        self.builder = builder
+        self.instance = instance
+
+        self.display_menu()
+
+    def display_menu(self):
+        terminal = Gtk.Image()
+        terminal.set_from_file(_get_image_path('terminal-32x32.png'))
+
+        ssh_connect = Gtk.ImageMenuItem("Connect via SSH")
+        ssh_connect.set_image(terminal)
+        ssh_connect.set_always_show_image(True)
+        ssh_connect.connect("activate", self.on_connect_clicked)
+
+        self.append(ssh_connect)
+        self.show_all()
+
+    def populate_ip_addrs(self):
+        ip_addrs = []
+        for attr in ('ip_address', 'private_ips', 'public_ips', ):
+            try:
+                ips = getattr(self.instance, attr)
+            except AttributeError:
+                pass
+            else:
+                if not isinstance(ips, list):
+                    if ips not in (None, ""):
+                        ips = ips.split(",")
+            for ip in ips:
+                ip = ip.strip(" ")
+                if ip not in ip_addrs:
+                    ip_addrs.append(ip)
+
+        ip_store = Gtk.ListStore(str, str)
+        for ip_addr in ip_addrs:
+            ip_store.append([ip_addr, ip_addr])
+
+        ipaddr_combo = self.builder.get_object("instance_ipaddr")
+        model = ipaddr_combo.get_model()
+
+        if model is not None:
+            model.clear()
+
+        ipaddr_combo.set_model(ip_store)
+        ipaddr_combo.set_active(0)
+
+    def _build_connection_settings(self):
+        self.view = self.builder.get_object("connection_settings")
+        self.view.connect("delete_event", self.cancel_btn_clicked)
+        self.connect_btn = self.builder.get_object("connect_btn")
+        self.cancel_btn = self.builder.get_object("connect_cancel_btn")
+        self.connect_handler = self.connect_btn.connect(
+            "clicked",
+            self.connect_btn_clicked)
+        self.cancel_handler = self.cancel_btn.connect(
+            "clicked",
+            self.cancel_btn_clicked)
+
+    def on_connect_clicked(self, widget):
+        if not hasattr(self, 'view'):
+            self._build_connection_settings()
+
+        self.populate_ip_addrs()
+        self.view.show_all()
+
+    def connect_btn_clicked(self, widget):
+        username = self.builder.get_object(
+            'connection_username').get_buffer().get_text()
+        keypath = self.builder.get_object('connection_key').get_filename()
+        ip_addr = self.builder.get_object('instance_ipaddr')
+
+        command = ["ssh", "-o StrictHostKeyChecking=no"]
+        if username is not None:
+            command.append("-l %s" % username)
+
+        if keypath is not None:
+            command.append("-i %s" % keypath)
+
+        iter_ = ip_addr.get_active_iter()
+        model = ip_addr.get_model()
+
+        ip_addr = model[iter_][0]
+
+        command.append(ip_addr)
+        log.debug('Connecting via ssh to host: %s' % ip_addr)
+        terminal = Vte.Terminal()
+        terminal.fork_command_full(Vte.PtyFlags.DEFAULT,
+                                   None, command,
+                                   [], GLib.SpawnFlags.SEARCH_PATH, None, None)
+
+        notebook = self.builder.get_object("notebook1")
+        notebook.append_page(terminal,
+                             Gtk.Label("Connection: <%s>" % self.instance.id))
+        notebook.show_all()
+        self.cancel_btn_clicked(self)
+
+    def cancel_btn_clicked(self, widget):
+        self.view.hide()
+        if self.connect_handler:
+            self.connect_btn.disconnect(self.connect_handler)
+        if self.cancel_handler:
+            self.cancel_btn.disconnect(self.cancel_handler)
 
 
 class ConsoleOutputWindow(object):
@@ -78,15 +194,27 @@ class AppWindowHandlers(object):
             self.view.selected_account = Account(model[iter_][0])
             self.view.populate_instances(account_widget=widget)
 
+    def on_tree_instances_press_event(self, treeview, event):
+        if event.type == Gdk.EventType.BUTTON_PRESS and event.button == 3:
+            selection = treeview.get_selection()
+            (model, treeiter) = selection.get_selected()
+
+            if treeiter is not None:
+                self.popup = InstanceContextMenu(self.view.builder,
+                                                 model[treeiter][-1])
+                self.popup.popup(None, None, None, None,
+                                 event.button, event.time)
+
     def on_toolbtn_view_console_clicked(self, widget):
         tree = self.view.builder.get_object("tree_instances")
         selection = tree.get_selection()
         (model, treeiter) = selection.get_selected()
+
         if treeiter is None:
             log.debug("No row selected")
             return True
-        item = model[treeiter]
 
+        item = model[treeiter]
         ConsoleOutputWindow(item[-1], self.view.builder)
 
     def on_toolbtn_refresh_clicked(self, widget):
