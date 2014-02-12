@@ -17,12 +17,13 @@ state_images = {"running": "state-green.png",
 
 
 class Instance(object):
-    def __init__(self, type_, obj):
+    def __init__(self, adapter, type_, obj):
         self.log = logging.getLogger("Instance")
         for prop in dir(obj):
             if not prop.startswith("__"):
                 setattr(self, prop, getattr(obj, prop))
 
+        self._adapter = adapter
         self._type = type
         self._obj = obj
 
@@ -33,6 +34,10 @@ class Instance(object):
     @property
     def private_ip_address(self):
         return ", ".join(self.private_ips)
+
+    @property
+    def console_output(self):
+        return self.driver.ex_get_console_output(self._obj).get('output', '')
 
     @property
     def ip_addresses(self):
