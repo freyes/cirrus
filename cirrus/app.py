@@ -249,32 +249,23 @@ class InstanceContextMenu(Gtk.Menu):
 class ConsoleOutputWindow(object):
 
     def __init__(self, instance, builder):
-        self.clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
-
+        self.builder = builder
         self.builder = builder
         self.instance = instance
 
-        scrolled = Gtk.ScrolledWindow()
+        self.view = self.builder.get_object("wnd_console_output")
 
+    def show(self):
+        scrolled = Gtk.ScrolledWindow()
         console_buffer = Gtk.TextBuffer()
         console_buffer.set_text(self.instance.console_output)
-
         textview = Gtk.TextView(buffer=console_buffer)
         textview.set_editable(False)
-
         scrolled.add(textview)
-
-        panel.pack_start(scrolled, True, True, 5)
-
-        clipboard = self.builder.get_object("console_output_clipboard")
-        clipboard.connect("clicked", self.copy_to_clipboard)
-        wnd.show_all()
-
-    def copy_to_clipboard(self, widget):
-        self.clipboard.clear()
-        clipboard_data = self.console_buffer.get_text(
-            *self.console_buffer.get_bounds(), include_hidden_chars=True)
-        self.clipboard.set_text(clipboard_data, len(clipboard_data))
+        panel = Gtk.Paned()
+        panel.add1(scrolled)
+        self.view.add(panel)
+        self.view.show_all()
 
 
 class AppWindowHandlers(object):
@@ -314,7 +305,8 @@ class AppWindowHandlers(object):
             return True
 
         item = model[treeiter]
-        ConsoleOutputWindow(item[-1], self.view.builder)
+        console = ConsoleOutputWindow(item[-1], self.view.builder)
+        console.show()
 
     def on_toolbtn_refresh_clicked(self, widget):
         self.view.populate_instances()
