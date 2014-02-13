@@ -228,6 +228,13 @@ class InstanceContextMenu(Gtk.Menu):
         terminal = Gtk.Image()
         terminal.set_from_file(_get_image_path('terminal-32x32.png'))
 
+        console = Gtk.Image()
+        console.set_from_stock(Gtk.STOCK_FILE, Gtk.IconSize.SMALL_TOOLBAR)
+
+        console_menu = Gtk.ImageMenuItem("Show Console Output")
+        console_menu.set_image(console)
+        console_menu.set_always_show_image(True)
+
         connect_menu = Gtk.ImageMenuItem("Connect via SSH (%s)" % state)
         connect_menu.set_image(terminal)
         connect_menu.set_always_show_image(True)
@@ -235,9 +242,26 @@ class InstanceContextMenu(Gtk.Menu):
         if state not in ('running', ):
             connect_menu.set_sensitive(False)
 
+        console_menu.connect("activate", self.console_clicked)
         connect_menu.connect("activate", self.connect_clicked)
+
+        self.append(console_menu)
         self.append(connect_menu)
         self.show_all()
+
+    def console_clicked(self, widget):
+        tree = self.builder.get_object("tree_instances")
+        selection = tree.get_selection()
+
+        (model, treeiter) = selection.get_selected()
+
+        if treeiter is None:
+            log.debug("No row selected")
+            return True
+
+        item = model[treeiter]
+        console = ConsoleOutputWindow(item[-1], self.builder)
+        console.show()
 
     def connect_clicked(self, widget):
         if not hasattr(self, 'connection_settings'):
@@ -293,20 +317,6 @@ class AppWindowHandlers(object):
                                                  model[treeiter][-1])
                 self.popup.popup(None, None, None, None,
                                  event.button, event.time)
-
-    def on_toolbtn_view_console_clicked(self, widget):
-        tree = self.view.builder.get_object("tree_instances")
-        selection = tree.get_selection()
-
-        (model, treeiter) = selection.get_selected()
-
-        if treeiter is None:
-            log.debug("No row selected")
-            return True
-
-        item = model[treeiter]
-        console = ConsoleOutputWindow(item[-1], self.view.builder)
-        console.show()
 
     def on_toolbtn_refresh_clicked(self, widget):
         self.view.populate_instances()
