@@ -23,8 +23,8 @@ On the near future **Cirrus** will support:
 
 ## Who is contributing
 
-* Felipe Reyes A. ( freyes@tty.cl )
-* Jorge Niedbalski R. ( niedbalski@gmail.com )
+* Felipe Reyes A. ( freyes@tty.cl ) - Author 
+* Jorge Niedbalski R. ( niedbalski@gmail.com ) - Contributor
 
 ## How to contribute
 
