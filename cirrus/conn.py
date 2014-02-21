@@ -1,9 +1,12 @@
-import urlparse
 import libcloud.security
 from cirrus.config import settings
 from cirrus.exception import AccountError
 from libcloud.compute.types import Provider
 from libcloud.compute.providers import get_driver
+try:
+    import urlparse
+except ImportError:
+    from urllib import parse as urlparse  # py3.3 compat
 
 
 class Account(object):
