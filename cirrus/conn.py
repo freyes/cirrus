@@ -31,7 +31,7 @@ class Account(object):
 class Adapter(object):
 
     def __init__(self, account, region=None):
-        if isinstance(account, basestring):
+        if isinstance(account, str):
             self.account = Account(account)
         else:
             self.account = account

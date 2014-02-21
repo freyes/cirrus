@@ -30,7 +30,8 @@ class ListInstancesThread(threading.Thread, GObject.GObject):
         try:
             Gdk.threads_enter()
             for instance in adapter.conn.list_nodes():
-                instances.append(Instance(adapter, self.account.type, instance))
+                instances.append(Instance(adapter, self.account.type,
+                                          instance))
         except Exception as ex:
             self.emit('list-nodes-error', ex)
         else:
