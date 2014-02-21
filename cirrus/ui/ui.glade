@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.16.0 on Fri Feb 21 15:50:50 2014 -->
 <interface>
-  <!-- interface-requires gtk+ 3.0 -->
+  <!-- interface-requires gtk+ 3.8 -->
   <object class="GtkWindow" id="connection_settings">
     <property name="width_request">400</property>
     <property name="height_request">150</property>
@@ -89,7 +90,6 @@
                       <object class="GtkFileChooserButton" id="connection_key">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="orientation">vertical</property>
                         <property name="show_hidden">True</property>
                         <property name="title" translatable="yes">Select a PEM file</property>
                       </object>
@@ -168,7 +168,6 @@
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
-                            <property name="use_action_appearance">False</property>
                             <property name="use_underline">True</property>
                           </object>
                           <packing>
@@ -183,7 +182,6 @@
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
-                            <property name="use_action_appearance">False</property>
                           </object>
                           <packing>
                             <property name="resize">False</property>
@@ -242,7 +240,6 @@
                     <property name="use_action_appearance">False</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="use_action_appearance">False</property>
                     <property name="label" translatable="yes">Refresh</property>
                     <property name="use_underline">True</property>
                     <property name="stock_id">gtk-refresh</property>
@@ -369,6 +366,7 @@
     <property name="width_request">500</property>
     <property name="height_request">500</property>
     <property name="can_focus">False</property>
+    <property name="opacity">0.96000000044703482</property>
     <property name="border_width">10</property>
     <property name="title" translatable="yes">Console output</property>
     <property name="modal">True</property>
@@ -376,7 +374,6 @@
     <property name="default_width">600</property>
     <property name="default_height">500</property>
     <property name="destroy_with_parent">True</property>
-    <property name="opacity">0.96000000044703482</property>
     <child>
       <placeholder/>
     </child>
