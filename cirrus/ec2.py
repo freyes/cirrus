@@ -24,7 +24,13 @@ class ListInstancesThread(threading.Thread, GObject.GObject):
         self.instance_ids = None
 
     def run(self):
-        adapter = Adapter(self.account)
+        try:
+            adapter = Adapter(self.account)
+        except RuntimeError as ex:
+            Gdk.threads_enter()
+            self.emit('list-nodes-error', ex)
+            Gdk.threads_leave()
+            return False
 
         instances = []
         try:
