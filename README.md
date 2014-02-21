@@ -1,5 +1,7 @@
 ## What is Cirrus(tm)?
 
+[![Build Status](https://travis-ci.org/freyes/cirrus.png?branch=master)](https://travis-ci.org/freyes/cirrus)
+
 **Cirrus** is a management user interface for EC2 compatible clouds written
 in GTK 3.
 
