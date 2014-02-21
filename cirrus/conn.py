@@ -23,7 +23,7 @@ class Account(object):
                 self.secure = (parsed.scheme == "https")
                 self.host = parsed.hostname
                 self.port = parsed.port
-        except KeyError, ex:
+        except KeyError as ex:
             raise
             raise AccountError("missing %s from account %s" % (ex, name))
 
